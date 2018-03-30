@@ -1,6 +1,6 @@
 # elmo-diff
 
-Originally [elm-diff](../../../elmo-diff), the library has been rewritten in ECMAScript 6
+Originally [elm-diff](../../../elm-diff), the library has been rewritten in ECMAScript 6
 due to performance issues. The algorithm is inspired from Myers' diffing algorithm
 that can be found [here](https://neil.fraser.name/writing/diff/myers.pdf), however
 it is modified to make it probabilistic and quicker.

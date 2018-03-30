@@ -87,7 +87,21 @@ describe('PriorityQueue', function() {
 
     describe('#sample()', function() {
         it('sampling does actually sample', function() {
+            const q = new PriorityQueue();
+            const N = 1000;
+            const probabilities = [1/6, 1/3, 1/2]
+            const error = 0.05;
+
+            q.push(0, 0); q.push(1, 1); q.push(2, 2);
+
+            const counter = [0, 0, 0];
+            for (var i=0;i<N;i++) {
+                counter[q.sample().item]++;
+            }
             
+            assert.ok(Math.abs(counter[0]/N - 1/6) < error);
+            assert.ok(Math.abs(counter[1]/N - 1/3) < error);
+            assert.ok(Math.abs(counter[2]/N - 1/2) < error);
         });
     });
 
@@ -141,6 +155,7 @@ describe('PriorityQueue', function() {
                 const _tmp = arr[i]; arr[i] = arr[j]; arr[j] = _tmp;
             }
 
+            console.log(q.toString);
             arr.forEach(elm => q.push(elm, elm));
 
             assert.equal(q.size, N);

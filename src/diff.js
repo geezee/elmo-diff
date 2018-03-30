@@ -1,3 +1,5 @@
+const PriorityQueue = require('./queue.js');
+
 /**
  * A quick diffing algorithm inspired by [Mye86]. This implementation does not
  * always provide the smallest diff, or the "best". The algorithm can find a
@@ -24,7 +26,7 @@
  *
  * [Mye86] - https://neil.fraser.name/writing/diff/myers.pdf
  */
-class Diff {
+module.exports = class Diff {
     constructor(source, target) {
         this.source = source;
         this.target = target;

@@ -21,3 +21,5 @@ function swap(arr, i1, i2) {
 function i_maxScore(arr, i1, i2) {
     return arr[i1].score >= arr[i2].score ? i1 : i2;
 }
+
+module.exports = { swap: swap , i_maxScore: i_maxScore }

@@ -1,3 +1,5 @@
+const helpers = require('./helpers.js');
+
 /**
  * An implementation of a max-priority queue using a binary heap. The queue also
  * allows for weighted random sampling based on the priority of every item.
@@ -15,7 +17,7 @@
  *
  * @author george
  */
-class PriorityQueue {
+module.exports = class PriorityQueue {
     constructor() {
         this.items = [];
     }
@@ -51,9 +53,10 @@ class PriorityQueue {
         this.items.push({ item: item, score: score });
 
         while (i > 0) {
-            let parent = Math.floor(i / 2);
+            let parent = Math.floor((i-1) / 2);
 
-            if (this.items[parent].score < this.items[i].score) swap(this.items, i, parent);
+            if (this.items[parent].score < this.items[i].score)
+                helpers.swap(this.items, i, parent);
             else break;
 
             i = parent;
@@ -117,7 +120,7 @@ class PriorityQueue {
     remove(index) {
         if (index >= this.size) return;
 
-        swap(this.items, index, this.size-1);
+        helpers.swap(this.items, index, this.size-1);
         const root = this.items.pop();
 
         let i = index;
@@ -128,11 +131,11 @@ class PriorityQueue {
 
             if (child1 >= this.size) break;
             else if (child2 >= this.size) max_child = child1;
-            else max_child = i_maxScore(this.items, child1, child2);
+            else max_child = helpers.i_maxScore(this.items, child1, child2);
 
             if (this.items[max_child].score > this.items[i].score) {
-                swap(this.items, i, max_child);
-                i = child1;
+                helpers.swap(this.items, i, max_child);
+                i = max_child;
             } else break;
         }
 

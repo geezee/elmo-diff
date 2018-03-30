@@ -1,4 +1,4 @@
-#elmo-diff
+# elmo-diff
 
 Originally [elm-diff](../../../elmo-diff), the library has been rewritten in ECMAScript 6
 due to performance issues. The algorithm is inspired from Myers' diffing algorithm

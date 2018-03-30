@@ -86,6 +86,9 @@ describe('PriorityQueue', function() {
 
 
     describe('#sample()', function() {
+        it('sampling empty queue results in undefined', function() {
+            assert.equal(new PriorityQueue().sample(), undefined);
+        });
         it('sampling does actually sample', function() {
             const q = new PriorityQueue();
             const N = 1000;

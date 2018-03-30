@@ -1,5 +1,8 @@
 # elmo-diff
 
+[![Build Status](https://travis-ci.org/geezee/elmo-diff.svg?branch=master)](https://travis-ci.org/geezee/elmo-diff)
+[![Coverage Status](https://coveralls.io/repos/github/geezee/elmo-diff/badge.svg)](https://coveralls.io/github/geezee/elmo-diff)
+
 Originally [elm-diff](../../../elm-diff), the library has been rewritten in ECMAScript 6
 due to performance issues. The algorithm is inspired from Myers' diffing algorithm
 that can be found [here](https://neil.fraser.name/writing/diff/myers.pdf), however

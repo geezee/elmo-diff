@@ -203,6 +203,11 @@ describe('Diff', function() {
         const path = diff.serialize(diff.computePath());
         assert.equal(Diff.apply(source, path), target);
     });
+    it('Not problematic if both strings are equal', function() {
+        const str = 'hello world';
+        console.log(Diff.diff(str, str));
+        console.log(Diff.apply(str, ""));
+    });
     it('reconstructing a diffed pair works', function() {
         function randomDerivative(strSource) {
             const Ndiff = Math.ceil((0.15*Math.random()+0.05)*strSource.length);
@@ -221,12 +226,14 @@ describe('Diff', function() {
             return Diff.apply(strSource, JSON.stringify(randDiff));
         }
 
-        const N = Math.ceil(1000 * Math.random()) + 500;
-        const strSource = new Array(N).fill(0)
-            .reduce(str => str + Math.random().toString(36).substring(2),"");
-        const strTarget = randomDerivative(strSource);
-
-        const diff = Diff.diff(strSource, strTarget);
-        assert.equal(Diff.apply(strSource, diff), strTarget);
+        for(var _=0;_<10;_++) {
+            const N = Math.ceil(1000 * Math.random()) + 500;
+            const strSource = new Array(N).fill(0)
+                .reduce(str => str + Math.random().toString(36).substring(2),"");
+            const strTarget = randomDerivative(strSource);
+            
+            const diff = Diff.diff(strSource, strTarget);
+            assert.equal(Diff.apply(strSource, diff), strTarget);
+        }
     });
 });

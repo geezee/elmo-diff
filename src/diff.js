@@ -177,6 +177,8 @@ module.exports = class Diff {
         let result = input;
 
         serializedPath.split(',').forEach(op => {
+            if (op.length == 0) return;
+
             op = op.split(':');
             if (op.length > 1) { // insert [index, char]
                 let i = op[0];

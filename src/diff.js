@@ -34,7 +34,7 @@ module.exports = class Diff {
         this.source = source;
         this.target = target;
 
-        this.counter = 0;
+        this.iteration = 0;
 
         this.queue = new PriorityQueue();
         this.queue.push(this.newPoint(0, 0), 1);
@@ -55,16 +55,17 @@ module.exports = class Diff {
     }
 
     step() {
-        const sampleObj = this.queue.sample();
+        const surrender = Math.random() < 0.8 / Math.sqrt(this.iteration);
+        const sampleObj = surrender ? this.queue.sample() : this.queue.pop();
         const sample = sampleObj.item;
 
         if (this.isTarget(sample)) return;
 
         this.queue.remove(sampleObj.index);
         this.getNeighbors(sample).forEach(point => {
-            const {x, y} = point;
+            const {x, y, dlength} = point;
             const de = Math.hypot(x-this.endpoint.x, y-this.endpoint.y);
-            const score = Math.max(x+y, x + y - de);
+            const score = Math.max(x+y, x + y - de) - 2 * dlength;
 
             point.dlength = sample.dlength + 1;
 
@@ -77,6 +78,8 @@ module.exports = class Diff {
                 this.nodes[point.id] = point;
             }
         });
+
+        this.iteration++;
     }
 
     getNeighbors({x, y}) {
@@ -90,15 +93,16 @@ module.exports = class Diff {
         }
 
         const neighbors = [];
+        const hasDiagonal = this.source.charAt(x) == this.target.charAt(y);
 
         if (x == this.endpoint.x && y == this.endpoint.y)
             return [ this.endpoint ];
-        if (x + 1 <= this.source.length)
-            neighbors.push(followDiagonal({ x: x+1, y: y }));
-        if (y + 1 <= this.target.length)
-            neighbors.push(followDiagonal({ x: x, y: y+1 }));
-        if (this.source.charAt(x) == this.target.charAt(y))
-            neighbors.push(followDiagonal({ x: x+1, y: y+1 }));
+        if (!hasDiagonal) {
+            if (x + 1 <= this.source.length)
+                neighbors.push(followDiagonal({ x: x+1, y: y }));
+            if (y + 1 <= this.target.length)
+                neighbors.push(followDiagonal({ x: x, y: y+1 }));
+        } else neighbors.push(followDiagonal({ x: x+1, y: y+1 }));
 
         return neighbors
     }
@@ -156,21 +160,47 @@ module.exports = class Diff {
 
         path.reverse();
 
-        var edits = [];
+        let result = "";
         for(var i=0;i<path.length-1;i++) {
             const type = transitionType(path[i], path[i+1]);
-            if (type == 'i') {
-                edits.push([0, path[i].x-1, this.target.charAt(path[i].y)]);
-            } else {
-                edits.push([1, path[i].x]);
-            }
+            if (type == 'i')
+                result += path[i].y + ':' + this.target.charAt(path[i].y) + ',';
+            else if (type == 'd')
+                result += path[i].x + ',';
         }
 
-        return JSON.stringify(edits);
+        return result.substring(0, result.length-1);
     }
 
     static apply(input, serializedPath) {
-        return "CBABAC";
+        let delOffset = 0;
+        let result = input;
+
+        serializedPath.split(',').forEach(op => {
+            op = op.split(':');
+            if (op.length > 1) { // insert [index, char]
+                let i = op[0];
+                result = result.substring(0, i) + op[1] + result.substring(i);
+                delOffset--;
+            } else { // delete @ index
+                let i = op[0] - delOffset;
+                result = result.substring(0, i) + result.substring(i+1);
+                delOffset++;
+            }
+        });
+
+        return result;
+    }
+
+    static diff(source, target, trials = 3) {
+        let shortest = null;
+        for(var _=0;_<trials;_++) {
+            const diff = new Diff(source, target);
+            const path = diff.computePath();
+            if (shortest == null || path.length < shortest.length)
+                shortest = path;
+        }
+        return new Diff(source, target).serialize(shortest);
     }
 
 }

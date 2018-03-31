@@ -18,6 +18,9 @@ const PriorityQueue = require('./queue.js');
  * // diffing representation
  * const repr = diff.serialize(path);
  *
+ * // or you can do it directly like this
+ * const repr2 = Diff.diff("ABCABBA", "CBABAC");
+ *
  * // transform input to output using the representation
  * const output = Diff.apply("ABCABBA", repr);
  *
@@ -27,6 +30,13 @@ const PriorityQueue = require('./queue.js');
  * [Mye86] - https://neil.fraser.name/writing/diff/myers.pdf
  */
 module.exports = class Diff {
+
+    /**
+     * Initialize the environment for the diffing.
+     *
+     * @param source    {string} the original string
+     * @param target    {string} the target string
+     */
     constructor(source, target) {
         if (source == "") throw "Source cannot be empty";
         if (target == "") throw "Target cannot be empty";
@@ -54,6 +64,9 @@ module.exports = class Diff {
         };
     }
 
+    /**
+     * Perform a step in computing a path
+     */
     step() {
         const surrender = Math.random() < 0.8 / Math.sqrt(this.iteration);
         const sampleObj = surrender ? this.queue.sample() : this.queue.pop();
@@ -82,6 +95,16 @@ module.exports = class Diff {
         this.iteration++;
     }
 
+    /**
+     * Compute the possible neighbors in the edit graph. If it's possible to
+     * go along a diagonal, i.e. there is no changes to be done then the diagonal
+     * point is the only neighbor. Otherwise the node to the right/bottom of the
+     * node are the neighbors
+     *
+     * @param node    {Object.{x: uint, y: uint}} the node to compute its neighbors
+     *
+     * @return {List.{x: uint, y: uint}}
+     */
     getNeighbors({x, y}) {
         const followDiagonal = ({x, y}) => {
             while (x < this.source.length && y < this.target.length
@@ -107,11 +130,25 @@ module.exports = class Diff {
         return neighbors
     }
 
+    /**
+     * Check if the point in question is the target node in the edit graph,
+     * i.e. the bottom-most right-most node in the edit graph
+     *
+     * @return {boolean}
+     */
     isTarget({x, y}) {
         return x == this.source.length
             && y == this.target.length;
     }
 
+    /**
+     * Perform iteration steps till the endpoint is reached, then compute a
+     * path from the endpoint to the start and return it. The list starts with
+     * the endpoint and ends with the starting point. In the list any node at
+     * index i will have its parent at index i+1.
+     *
+     * @return {List.{x: uint, y: uint}}
+     */
     computePath() {
         this.step();
         while (!(this.endpoint.id in this.nodes)) {
@@ -131,6 +168,11 @@ module.exports = class Diff {
         return path;
     }
 
+    /**
+     * Draw the edit graph with visited nodes highlighted
+     *
+     * @return {string}
+     */
     visualize() {
         var str = "";
         for (var x=0;x<this.source.length;x++) {
@@ -141,6 +183,15 @@ module.exports = class Diff {
         return str;
     }
 
+    /**
+     * Produce a representation of a path according to the format described
+     * in the README file. Usually the input to this function is a result
+     * of calling Diff#computePath()
+     *
+     * @param path  {List.{x: uint, y: uint}} the path to serialize
+     *
+     * @return {string}
+     */
     serialize(path) {
         function transitionType(src, trgt) {
             let source = { x: src.x, y: src.y },
@@ -172,6 +223,15 @@ module.exports = class Diff {
         return result.substring(0, result.length-1);
     }
 
+    /**
+     * Assuming the format of `serializedPath` is as expected, output the edit
+     * operations described in the diff to the input.
+     *
+     * @param input {string} the input to apply the diff to.
+     * @param serializedPath {string} a serialized diff produced by the module
+     *
+     * @return {string}
+     */
     static apply(input, serializedPath) {
         let delOffset = 0;
         let result = input;
@@ -194,6 +254,18 @@ module.exports = class Diff {
         return result;
     }
 
+    /**
+     * Output a serialized diff path. Due to the probabilistic nature of the
+     * algorithm the operation is done many times, the shortest diff is chosen
+     * to be returned. By default 3 trials are done.
+     *
+     * @param source    {string} the original string
+     * @param target    {string} he target string
+     * @param trials    {uint} the number of trials to do before returning the
+     *                  shortest path found (default 3)
+     *
+     * @return {string}
+     */
     static diff(source, target, trials = 3) {
         let shortest = null;
         for(var _=0;_<trials;_++) {

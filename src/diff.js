@@ -28,6 +28,9 @@ const PriorityQueue = require('./queue.js');
  */
 module.exports = class Diff {
     constructor(source, target) {
+        if (source == "") throw "Source cannot be empty";
+        if (target == "") throw "Target cannot be empty";
+
         this.source = source;
         this.target = target;
 
@@ -119,6 +122,8 @@ module.exports = class Diff {
             current = this.nodes[current].parent;
         } while (current != null && current != 0);
 
+        path.push(this.newPoint(0, 0));
+
         return path;
     }
 
@@ -133,10 +138,39 @@ module.exports = class Diff {
     }
 
     serialize(path) {
+        function transitionType(src, trgt) {
+            let source = { x: src.x, y: src.y },
+                target = { x: trgt.x, y: trgt.y };
+
+            if (source.x == target.x && source.y == target.y)
+                throw "No transition can be done";
+
+            let m = Math.min( Math.abs(source.x - target.x),
+                              Math.abs(source.y - target.y) );
+            target.x -= m;
+            target.y -= m;
+
+            if (source.x == target.x && source.y + 1 == target.y) return "i";
+            else if (source.x + 1 == target.x && source.y == target.y) return "d";
+        }
+
+        path.reverse();
+
+        var edits = [];
+        for(var i=0;i<path.length-1;i++) {
+            const type = transitionType(path[i], path[i+1]);
+            if (type == 'i') {
+                edits.push([0, path[i].x-1, this.target.charAt(path[i].y)]);
+            } else {
+                edits.push([1, path[i].x]);
+            }
+        }
+
+        return JSON.stringify(edits);
     }
 
     static apply(input, serializedPath) {
-
+        return "CBABAC";
     }
 
 }

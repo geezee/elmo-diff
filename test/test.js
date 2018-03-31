@@ -1,5 +1,6 @@
 const assert = require('assert');
 const PriorityQueue = require('../src/queue.js');
+const Diff = require('../src/diff.js');
 
 describe('PriorityQueue', function() {
     describe('#size()', function() {
@@ -158,7 +159,7 @@ describe('PriorityQueue', function() {
                 const _tmp = arr[i]; arr[i] = arr[j]; arr[j] = _tmp;
             }
 
-            console.log(q.toString);
+            q.toString;
             arr.forEach(elm => q.push(elm, elm));
 
             assert.equal(q.size, N);
@@ -169,5 +170,21 @@ describe('PriorityQueue', function() {
                 assert.equal(q.pop().item, i);
             }
         });
+    });
+});
+
+
+describe('Diff', function() {
+    it('Myers example: serialization test', function() {
+        const diff = new Diff("ABCABBA", "CBABAC");
+        const path = [ {x: 7, y: 6}, {x: 7, y: 5}, {x: 5, y: 4}, {x: 3, y: 1},
+            {x: 1, y: 0}, {x: 0, y: 0} ];
+
+        assert.equal(diff.serialize(path), '[[1,0],[1,1],[0,2,"B"],[1,5],[0,6,"C"]]');
+    });
+    it('Myers example: reconstruct from diff', function() {
+        const diff = new Diff("ABCABBA", "CBABAC");
+        const path = '[[1,0],[1,1],[0,2,"B"],[1,5],[0,6,"C"]]';
+        assert.equal(Diff.apply("ABCABBA", path), "CBABAC");
     });
 });

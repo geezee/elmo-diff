@@ -1,0 +1,14 @@
+<!DOCTYPE>
+<html>
+    <head>
+        <title>Diff in the browser</title>
+    </head>
+
+    <body>
+        <script src="../dist/elmo-diff.js"></script>
+        <script>
+            const str1 = "ABCABBA", str2 = "CBABAC";
+            console.log(Diff.apply(str1, Diff.diff(str1, str2)));
+        </script>
+    </body>
+</html>

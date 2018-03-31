@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "mocha",
-    "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- test/*; cat coverage/lcov.info | node_modules/coveralls/bin/coveralls.js"
+    "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- test/*; cat coverage/lcov.info | node_modules/coveralls/bin/coveralls.js",
+    "build": "webpack"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,8 @@
   "devDependencies": {
     "coveralls": "^3.0.0",
     "istanbul": "^0.4.5",
-    "mocha": "^5.0.5"
+    "mocha": "^5.0.5",
+    "webpack": "^4.4.1",
+    "webpack-cli": "^2.0.13"
   }
 }

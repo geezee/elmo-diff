@@ -83,7 +83,7 @@ described in the diff to the input.
 
 (In theory) the following should always be correct:
 ```js
-Diff.apply(str1, Diff.serialize(str1, str2)) == str2
+Diff.apply(str1, Diff.diff(str1, str2)) == str2
 ```
 
 ## A bit more about the algorithm

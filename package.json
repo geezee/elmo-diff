@@ -9,7 +9,8 @@
   "scripts": {
     "test": "mocha",
     "cover": "node_modules/istanbul/lib/cli.js cover node_modules/mocha/bin/_mocha -- test/*; cat coverage/lcov.info | node_modules/coveralls/bin/coveralls.js",
-    "build": "webpack"
+    "build": "webpack",
+    "benchmark": "node benchmarks/benchmarks.js"
   },
   "repository": {
     "type": "git",

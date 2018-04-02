@@ -52,6 +52,38 @@ module.exports = class Diff {
         this.nodes = {};
 
         this.endpoint = this.newPoint(this.source.length, this.target.length);
+
+        this.sampleDecider = () =>
+            Math.random() < Math.pow(this.iteration, -0.45);
+
+        this.postStep = function() { };
+    }
+
+    /**
+     * Change the function that decides whether to sample or pop during the
+     * computation of the path.
+     *
+     * @param decider {function}
+     *
+     * @return {Diff}
+     */
+    setSampleDecider(decider) {
+        if (typeof decider == "function")
+            this.sampleDecider = decider;
+        return this;
+    }
+
+    /**
+     * Set a function to be called after every step of the path computation.
+     *
+     * @param postStep {function}
+     *
+     * @return {Diff}
+     */
+    setPostStep(postStep) {
+        if (typeof postStep == "function")
+            this.postStep = postStep;
+        return this;
     }
 
     newPoint(x, y) {
@@ -68,11 +100,14 @@ module.exports = class Diff {
      * Perform a step in computing a path
      */
     step() {
-        const surrender = Math.random() < 0.8 / Math.sqrt(this.iteration);
-        const sampleObj = surrender ? this.queue.sample() : this.queue.pop();
+        this.iteration++;
+
+        const shouldSample = this.sampleDecider();
+        const sampleObj = shouldSample ? this.queue.sample() : this.queue.pop();
         const sample = sampleObj.item;
 
-        if (this.isTarget(sample)) return;
+        if (this.isTarget(sample))
+            return true;
 
         this.queue.remove(sampleObj.index);
         this.getNeighbors(sample).forEach(point => {
@@ -92,7 +127,9 @@ module.exports = class Diff {
             }
         });
 
-        this.iteration++;
+        this.postStep();
+
+        return false;
     }
 
     /**
@@ -150,10 +187,7 @@ module.exports = class Diff {
      * @return {List.{x: uint, y: uint}}
      */
     computePath() {
-        this.step();
-        while (!(this.endpoint.id in this.nodes)) {
-            this.step();
-        }
+        while(!this.step());
 
         const path = [];
 

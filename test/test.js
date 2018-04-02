@@ -205,8 +205,8 @@ describe('Diff', function() {
     });
     it('Not problematic if both strings are equal', function() {
         const str = 'hello world';
-        console.log(Diff.diff(str, str));
-        console.log(Diff.apply(str, ""));
+        assert.equal(Diff.diff(str,str), "");
+        assert.equal(Diff.apply(str, ""), str);
     });
     it('reconstructing a diffed pair works', function() {
         function randomDerivative(strSource) {

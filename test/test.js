@@ -180,14 +180,13 @@ describe('Diff', function() {
         const path = [ {x: 7, y: 6}, {x: 7, y: 5}, {x: 5, y: 4}, {x: 3, y: 1},
             {x: 1, y: 0}, {x: 0, y: 0} ];
 
-        const expected = '0,1,1:B,5,5:C';
+        const expected = '0-1,1:B,5,5:C';
         assert.equal(diff.serialize(path), expected);
     });
     it('Myers example: reconstruct from diff', function() {
         const diff = new Diff("ABCABBA", "CBABAC");
-        const path = '0,1,1:B,5,5:C';
-
-        assert.equal(Diff.apply("ABCABBA", path), "CBABAC");
+        assert.equal(Diff.apply("ABCABBA", '0,1,1:B,5,5:C'), "CBABAC");
+        assert.equal(Diff.apply("ABCABBA", '0-1,1:B,5,5:C'), "CBABAC");
     });
     it('Not problematic when strings start with same letter', function() {
         const source = '6759o8ae24yduycft7nw';
@@ -201,6 +200,7 @@ describe('Diff', function() {
         const target = 'cm3lrv2czfuo1ljggqt8ct7';
         const diff = new Diff(source, target);
         const path = diff.serialize(diff.computePath());
+        console.log(">>> [DEBUG]", path);
         assert.equal(Diff.apply(source, path), target);
     });
     it('Not problematic if both strings are equal', function() {

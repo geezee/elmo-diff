@@ -63,7 +63,7 @@ module.exports = class Diff {
      * Change the function that decides whether to sample or pop during the
      * computation of the path.
      *
-     * @param decider {function}
+     * @param decider {function : _ -> Bool}
      *
      * @return {Diff}
      */
@@ -248,13 +248,40 @@ module.exports = class Diff {
         let result = "";
         for(var i=0;i<path.length-1;i++) {
             const type = transitionType(path[i], path[i+1]);
+            path[i+1].parent_type = type;
+
+            // Sorry for the ugly syntax, i'll explain:
             if (type == 'i')
-                result += path[i].y + ':' + this.target.charAt(path[i].y) + ',';
-            else if (type == 'd')
-                result += path[i].x + ',';
+                /* It's not efficient to output `4:A,5:B,6:C`, it's better to store
+                 * it as `4:ABC`. This merger of inserts can be decided in the second,
+                 * third, etc... insert. It's not only sufficient to test if the parent
+                 * is also an insert, consider `0:A,1:B,3:C` it's not correct to merge
+                 * it as `0:ABC`, the correct way would be `0:AB,3:C`. So the current
+                 * insert index must be the successor of the parent's
+                 */
+                result += path[i].parent_type == 'i' && path[i-1].y + 1 == path[i].y
+                    ? this.target.charAt(path[i].y)
+                    : ',' + path[i].y + ':' + this.target.charAt(path[i].y);
+            else if (type == 'd') {
+                /* Let's discuss ranges: It's also not efficient to output `0,1,2,3`,
+                 * it would be better to output `0-3` instead. We need to distinguish
+                 * between three places; at the start of a range (output `,x`), inside
+                 * the range (do not output anything), at the end of a range (output `-x`).
+                 */
+                // a number that could be the start of a range
+                const start = path[i+1] != undefined && path[i+2] != undefined &&
+                    (transitionType(path[i+1], path[i+2]) == 'd' && path[i+1].x == path[i].x + 1);
+                // a number that could be the end of a range
+                const end = path[i-1] != undefined &&
+                    (path[i].parent_type == 'd' && path[i-1].x + 1 == path[i].x);
+                // a number in a range could be both the start and the end of a range
+                const in_range = start && end;
+
+                if (!in_range) result += (end ? '-' : ',') + path[i].x;
+            }
         }
 
-        return result.substring(0, result.length-1);
+        return result.substr(1);
     }
 
     /**
@@ -273,13 +300,19 @@ module.exports = class Diff {
         serializedPath.split(',').forEach(op => {
             if (op.length == 0) return;
 
-            op = op.split(':');
-            if (op.length > 1) { // insert [index, char]
-                let i = op[0];
-                result = result.substring(0, i) + op[1] + result.substring(i);
+            const ins = op.split(':');
+            const rng = op.split('-');
+            if (ins.length > 1) { // insert [index, char]
+                let i = ins[0];
+                result = result.substring(0, i) + ins[1] + result.substring(i);
                 delOffset--;
+            } else if (rng.length > 1) { // delete range [start, end]
+                let start = parseInt(rng[0]) - delOffset,
+                    end = parseInt(rng[1]) - delOffset;
+                result = result.substring(0, start) + result.substring(end+1);
+                delOffset += end - start + 1;
             } else { // delete @ index
-                let i = op[0] - delOffset;
+                let i = parseInt(op) - delOffset;
                 result = result.substring(0, i) + result.substring(i+1);
                 delOffset++;
             }

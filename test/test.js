@@ -227,7 +227,7 @@ describe('Diff', function() {
         }
 
         for(var _=0;_<10;_++) {
-            const N = Math.ceil(1000 * Math.random()) + 500;
+            const N = 15;
             const strSource = new Array(N).fill(0)
                 .reduce(str => str + Math.random().toString(36).substring(2),"");
             const strTarget = randomDerivative(strSource);

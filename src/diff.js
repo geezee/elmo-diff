@@ -227,6 +227,11 @@ module.exports = class Diff {
      * @return {string}
      */
     serialize(path) {
+        /* A transition is an insert (along y) or a delete (along x), it's also
+         * followed by a tail; a long diagonal. To find the transition type
+         * between (x1, y1) and (x2, y2) we need to unwind the diagonal and
+         * then we can decide
+         */
         function transitionType(src, trgt) {
             let source = { x: src.x, y: src.y },
                 target = { x: trgt.x, y: trgt.y };
@@ -243,15 +248,32 @@ module.exports = class Diff {
             else if (source.x + 1 == target.x && source.y == target.y) return "d";
         }
 
+        function char_escape(chr) {
+            switch (chr) {
+                case ':': return '\\:';
+                case '-': return '\\-';
+                case ',': return '\\,';
+                case '\\': return '\\\\';
+                default: return chr;
+            }
+        }
+
         path.reverse();
 
         let result = "";
         for(var i=0;i<path.length-1;i++) {
+            const par = i - 1 > 0 ? path[i-1] : null;
+            const node = path[i];
+            const succ = i + 1 < path.length - 1 ? path[i+1] : null;
+
             const type = transitionType(path[i], path[i+1]);
-            path[i+1].parent_type = type;
+
+            if (succ != null) succ.parent_type = type;
+            if (node != null) node.type = type;
+            if (succ !== null) succ.type = transitionType(path[i+1], path[i+2]);
 
             // Sorry for the ugly syntax, i'll explain:
-            if (type == 'i')
+            if (type == 'i') {
                 /* It's not efficient to output `4:A,5:B,6:C`, it's better to store
                  * it as `4:ABC`. This merger of inserts can be decided in the second,
                  * third, etc... insert. It's not only sufficient to test if the parent
@@ -259,25 +281,40 @@ module.exports = class Diff {
                  * it as `0:ABC`, the correct way would be `0:AB,3:C`. So the current
                  * insert index must be the successor of the parent's
                  */
-                result += path[i].parent_type == 'i' && path[i-1].y + 1 == path[i].y
-                    ? this.target.charAt(path[i].y)
-                    : ',' + path[i].y + ':' + this.target.charAt(path[i].y);
-            else if (type == 'd') {
-                /* Let's discuss ranges: It's also not efficient to output `0,1,2,3`,
-                 * it would be better to output `0-3` instead. We need to distinguish
-                 * between three places; at the start of a range (output `,x`), inside
-                 * the range (do not output anything), at the end of a range (output `-x`).
-                 */
-                // a number that could be the start of a range
-                const start = path[i+1] != undefined && path[i+2] != undefined &&
-                    (transitionType(path[i+1], path[i+2]) == 'd' && path[i+1].x == path[i].x + 1);
-                // a number that could be the end of a range
-                const end = path[i-1] != undefined &&
-                    (path[i].parent_type == 'd' && path[i-1].x + 1 == path[i].x);
-                // a number in a range could be both the start and the end of a range
-                const in_range = start && end;
+                let c = char_escape(this.target.charAt(node.y));
 
-                if (!in_range) result += (end ? '-' : ',') + path[i].x;
+                result += node.parent_type == 'i' && (par == undefined && par.y + 1 == node.y)
+                    ? c
+                    : ',' + node.y + ':' + c;
+
+            } else if (type == 'd') {
+                /* It's also not efficient to output `7,8,9,10,11,12,13,14` instead
+                 * we can output `7-14`
+                 *
+                 * The start of a range is one of:
+                 * i.   start of the path
+                 * ii.  parent is an insert
+                 * iii. otherwise parent doesn't write at the previous index
+                 *
+                 * The end of a range is one of:
+                 * i.   end of the path
+                 * ii.  successor is an insert
+                 * iii. successor doesn't write at the next index
+                 *
+                 * Singletons satisfy both start and end of path.
+                 */
+                const start = (par === null)
+                           || (par !== null &&
+                                   ((par.type == 'i')
+                                 || (par.type == 'd' && par.x + 1 < node.x)));
+
+                const end = (succ === null)
+                         || (succ !== null &&
+                                  ((succ.type == 'i')
+                                || (succ.type == 'd' && succ.x - 1 > node.x)));
+
+                if (start) result += ',' + node.x; // singletons and start of ranges
+                if (!start && end) result += '-' + node.x; // end of ranges
             }
         }
 

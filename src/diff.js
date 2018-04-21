@@ -280,8 +280,9 @@ module.exports = class Diff {
                  * insert index must be the successor of the parent's
                  */
                 let c = char_escape(this.target.charAt(node.y));
+                let validPar = typeof par === 'object' && par !== null;
 
-                result += node.parent_type == 'i' && (par !== undefined && par.y + 1 == node.y)
+                result += node.parent_type == 'i' && validPar && par.y + 1 == node.y
                     ? c
                     : ',' + node.y + ':' + c;
 
@@ -337,7 +338,7 @@ module.exports = class Diff {
             if ((matches = /^(\d+):(.*)$/g.exec(op)) !== null) {
                 let i = parseInt(matches[1]);
                 result = result.substring(0, i) + matches[2] + result.substring(i);
-                delOffset--;
+                delOffset -= matches[2].length;
             } else if ((matches = /^(\d+)-(\d+)$/g.exec(op)) !== null) {
                 let start = parseInt(matches[1]) - delOffset,
                     end = parseInt(matches[2]) - delOffset;

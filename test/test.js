@@ -180,7 +180,7 @@ describe('Diff', function() {
         const path = [ {x: 7, y: 6}, {x: 7, y: 5}, {x: 5, y: 4}, {x: 3, y: 1},
             {x: 1, y: 0}, {x: 0, y: 0} ];
 
-        const expected = '0-1,1:B,5,5:C';
+        const expected = '0,1,1:B,5,5:C';
         assert.equal(diff.serialize(path), expected);
     });
     it('Myers example: reconstruct from diff', function() {
@@ -200,7 +200,7 @@ describe('Diff', function() {
         const target = 'cm3lrv2czfuo1ljggqt8ct7';
         const diff = new Diff(source, target);
         const path = diff.serialize(diff.computePath());
-        console.log(">>> [DEBUG]", path);
+
         assert.equal(Diff.apply(source, path), target);
     });
     it('Not problematic if both strings are equal', function() {
@@ -210,29 +210,34 @@ describe('Diff', function() {
     });
     it('reconstructing a diffed pair works', function() {
         function randomDerivative(strSource) {
-            const Ndiff = Math.ceil((0.15*Math.random()+0.05)*strSource.length);
+            const Ndiff = Math.ceil((0.05*Math.random()+0.05)*strSource.length);
 
-            let randDiff = [];
+            let randDiff = "";
             let index = 0;
             for (var i=0;i<Ndiff;i++) {
                 if (Math.random() < 0.5) {
                     index += Math.floor(Math.random() * strSource.length / Ndiff);
-                    randDiff.push(index);
+                    randDiff += ',' + index;
+                    if (Math.random() < 0.5) {
+                        index += 1 + Math.floor(Math.random() * 5);
+                        randDiff += '-' + index;
+                    }
                 } else {
-                    randDiff.push([index, String.fromCharCode(97 + Math.floor(Math.random() * 26))]);
+                    let randc = String.fromCharCode(97 + Math.floor(Math.random()*26));
+                    randDiff += ',' + index + ':' + randc;
                 }
             }
 
-            return Diff.apply(strSource, JSON.stringify(randDiff));
+            return Diff.apply(strSource, randDiff.substring(1));
         }
 
-        for(var _=0;_<10;_++) {
-            const N = 15;
+        for(var _=0;_<100;_++) {
+            const N = Math.ceil(500 * Math.random()) + 50;
             const strSource = new Array(N).fill(0)
                 .reduce(str => str + Math.random().toString(36).substring(2),"");
             const strTarget = randomDerivative(strSource);
             
-            const diff = Diff.diff(strSource, strTarget);
+            const diff = Diff.diff(strSource, strTarget, 1);
             assert.equal(Diff.apply(strSource, diff), strTarget);
         }
     });

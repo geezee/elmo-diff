@@ -250,8 +250,6 @@ module.exports = class Diff {
 
         function char_escape(chr) {
             switch (chr) {
-                case ':': return '\\:';
-                case '-': return '\\-';
                 case ',': return '\\,';
                 case '\\': return '\\\\';
                 default: return chr;
@@ -283,7 +281,7 @@ module.exports = class Diff {
                  */
                 let c = char_escape(this.target.charAt(node.y));
 
-                result += node.parent_type == 'i' && (par == undefined && par.y + 1 == node.y)
+                result += node.parent_type == 'i' && (par === undefined && par.y + 1 == node.y)
                     ? c
                     : ',' + node.y + ':' + c;
 
@@ -334,26 +332,45 @@ module.exports = class Diff {
         let delOffset = 0;
         let result = input;
 
-        serializedPath.split(',').forEach(op => {
-            if (op.length == 0) return;
-
-            const ins = op.split(':');
-            const rng = op.split('-');
-            if (ins.length > 1) { // insert [index, char]
-                let i = ins[0];
-                result = result.substring(0, i) + ins[1] + result.substring(i);
+        function apply_op(op) {
+            let matches;
+            if ((matches = /^(\d+):(.*)$/g.exec(op)) !== null) {
+                let i = parseInt(matches[1]);
+                result = result.substring(0, i) + matches[2] + result.substring(i);
                 delOffset--;
-            } else if (rng.length > 1) { // delete range [start, end]
-                let start = parseInt(rng[0]) - delOffset,
-                    end = parseInt(rng[1]) - delOffset;
+            } else if ((matches = /^(\d+)-(\d+)$/g.exec(op)) !== null) {
+                let start = parseInt(matches[1]) - delOffset,
+                    end = parseInt(matches[2]) - delOffset;
                 result = result.substring(0, start) + result.substring(end+1);
                 delOffset += end - start + 1;
-            } else { // delete @ index
+            } else if ((matches = /^(\d+)$/g.exec(op)) !== null) {
                 let i = parseInt(op) - delOffset;
                 result = result.substring(0, i) + result.substring(i+1);
                 delOffset++;
+            } else {
+                throw "Operation not valid: " + op;
             }
-        });
+        }
+
+        let op = '';
+        let escaped = false;
+
+        for (var i=0;i<serializedPath.length;i++) {
+            if (serializedPath.charAt(i) == ',' && !escaped) {
+                apply_op(op);
+                op = '';
+            } else if (serializedPath.charAt(i) == '\\' && !escaped) {
+                escaped = true;
+                continue;
+            } else {
+                op += serializedPath.charAt(i);
+                escaped = false;
+            }
+        }
+
+        if (op.length > 0) {
+            apply_op(op);
+        }
 
         return result;
     }

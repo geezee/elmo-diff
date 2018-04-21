@@ -281,7 +281,7 @@ module.exports = class Diff {
                  */
                 let c = char_escape(this.target.charAt(node.y));
 
-                result += node.parent_type == 'i' && (par === undefined && par.y + 1 == node.y)
+                result += node.parent_type == 'i' && (par !== undefined && par.y + 1 == node.y)
                     ? c
                     : ',' + node.y + ':' + c;
 
@@ -289,15 +289,15 @@ module.exports = class Diff {
                 /* It's also not efficient to output `7,8,9,10,11,12,13,14` instead
                  * we can output `7-14`
                  *
-                 * The start of a range is one of:
+                 * The start of a range satisfies one of the following:
                  * i.   start of the path
                  * ii.  parent is an insert
-                 * iii. otherwise parent doesn't write at the previous index
+                 * iii. parent doesn't delete at the previous index
                  *
-                 * The end of a range is one of:
+                 * The end of a range satisfies one of the following:
                  * i.   end of the path
                  * ii.  successor is an insert
-                 * iii. successor doesn't write at the next index
+                 * iii. successor doesn't delete at the next index
                  *
                  * Singletons satisfy both start and end of path.
                  */

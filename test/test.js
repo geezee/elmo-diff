@@ -208,6 +208,10 @@ describe('Diff', function() {
         assert.equal(Diff.diff(str,str), "");
         assert.equal(Diff.apply(str, ""), str);
     });
+    it('Escapes commas and slashes', function() {
+        assert.equal(Diff.diff('test', ',test'), '0:\\,');
+        assert.equal(Diff.diff('test', '\\test'), '0:\\\\');
+    });
     it('reconstructing a diffed pair works', function() {
         function randomDerivative(strSource) {
             const Ndiff = Math.ceil((0.05*Math.random()+0.05)*strSource.length);

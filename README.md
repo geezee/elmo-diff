@@ -34,20 +34,21 @@ console.log(Diff.apply("ABCABBA", serialized)); // "CBABAC"
 The format of the diff can be described as follows:
 
 ```
-diff ::= <edit> | <edit> , <diff>
+diff ::= <edit> | <edit> ',' <diff>
 edit ::= <remove> | <insert>
-remove ::= <index>
-insert ::= <index> : <character>
+remove ::= <index> | <index> '-' <index>
+insert ::= <index> ':' <character>+
 
-index ::= \d
-character ::= .
+index ::= \d+
+character ::= [^,\] | '\,' | '\\'
 ```
 
-For example the diff `0,1:c,7,8:d` describes the operations:
+For example the diff `0,1:c,7,8:de,10-15` describes the operations:
 * delete character at index 0
 * insert character `c` at index 1
 * delete character at index 7
-* insert character `d` at index 8
+* insert string `de` at index 8
+* delete all characters from index `10` to `15`
 
 ## API
 

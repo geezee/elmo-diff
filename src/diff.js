@@ -63,7 +63,7 @@ module.exports = class Diff {
      * Change the function that decides whether to sample or pop during the
      * computation of the path.
      *
-     * @param decider {function}
+     * @param decider {function : _ -> Bool}
      *
      * @return {Diff}
      */
@@ -227,6 +227,11 @@ module.exports = class Diff {
      * @return {string}
      */
     serialize(path) {
+        /* A transition is an insert (along y) or a delete (along x), it's also
+         * followed by a tail; a long diagonal. To find the transition type
+         * between (x1, y1) and (x2, y2) we need to unwind the diagonal and
+         * then we can decide
+         */
         function transitionType(src, trgt) {
             let source = { x: src.x, y: src.y },
                 target = { x: trgt.x, y: trgt.y };
@@ -243,18 +248,76 @@ module.exports = class Diff {
             else if (source.x + 1 == target.x && source.y == target.y) return "d";
         }
 
+        function char_escape(chr) {
+            switch (chr) {
+                case ',': return '\\,';
+                case '\\': return '\\\\';
+                default: return chr;
+            }
+        }
+
         path.reverse();
 
         let result = "";
         for(var i=0;i<path.length-1;i++) {
+            const par = i - 1 > 0 ? path[i-1] : null;
+            const node = path[i];
+            const succ = i + 1 < path.length - 1 ? path[i+1] : null;
+
             const type = transitionType(path[i], path[i+1]);
-            if (type == 'i')
-                result += path[i].y + ':' + this.target.charAt(path[i].y) + ',';
-            else if (type == 'd')
-                result += path[i].x + ',';
+
+            if (succ != null) succ.parent_type = type;
+            if (node != null) node.type = type;
+            if (succ !== null) succ.type = transitionType(path[i+1], path[i+2]);
+
+            // Sorry for the ugly syntax, i'll explain:
+            if (type == 'i') {
+                /* It's not efficient to output `4:A,5:B,6:C`, it's better to store
+                 * it as `4:ABC`. This merger of inserts can be decided in the second,
+                 * third, etc... insert. It's not only sufficient to test if the parent
+                 * is also an insert, consider `0:A,1:B,3:C` it's not correct to merge
+                 * it as `0:ABC`, the correct way would be `0:AB,3:C`. So the current
+                 * insert index must be the successor of the parent's
+                 */
+                let c = char_escape(this.target.charAt(node.y));
+                let validPar = typeof par === 'object' && par !== null;
+
+                result += node.parent_type == 'i' && validPar && par.y + 1 == node.y
+                    ? c
+                    : ',' + node.y + ':' + c;
+
+            } else if (type == 'd') {
+                /* It's also not efficient to output `7,8,9,10,11,12,13,14` instead
+                 * we can output `7-14`
+                 *
+                 * The start of a range satisfies one of the following:
+                 * i.   start of the path
+                 * ii.  parent is an insert
+                 * iii. parent doesn't delete at the previous index
+                 *
+                 * The end of a range satisfies one of the following:
+                 * i.   end of the path
+                 * ii.  successor is an insert
+                 * iii. successor doesn't delete at the next index
+                 *
+                 * Singletons satisfy both start and end of path.
+                 */
+                const start = (par === null)
+                           || (par !== null &&
+                                   ((par.type == 'i')
+                                 || (par.type == 'd' && par.x + 1 < node.x)));
+
+                const end = (succ === null)
+                         || (succ !== null &&
+                                  ((succ.type == 'i')
+                                || (succ.type == 'd' && succ.x - 1 > node.x)));
+
+                if (start) result += ',' + node.x; // singletons and start of ranges
+                if (!start && end) result += '-' + node.x; // end of ranges
+            }
         }
 
-        return result.substring(0, result.length-1);
+        return result.substr(1);
     }
 
     /**
@@ -270,20 +333,45 @@ module.exports = class Diff {
         let delOffset = 0;
         let result = input;
 
-        serializedPath.split(',').forEach(op => {
-            if (op.length == 0) return;
-
-            op = op.split(':');
-            if (op.length > 1) { // insert [index, char]
-                let i = op[0];
-                result = result.substring(0, i) + op[1] + result.substring(i);
-                delOffset--;
-            } else { // delete @ index
-                let i = op[0] - delOffset;
+        function apply_op(op) {
+            let matches;
+            if ((matches = /^(\d+):(.*)$/g.exec(op)) !== null) {
+                let i = parseInt(matches[1]);
+                result = result.substring(0, i) + matches[2] + result.substring(i);
+                delOffset -= matches[2].length;
+            } else if ((matches = /^(\d+)-(\d+)$/g.exec(op)) !== null) {
+                let start = parseInt(matches[1]) - delOffset,
+                    end = parseInt(matches[2]) - delOffset;
+                result = result.substring(0, start) + result.substring(end+1);
+                delOffset += end - start + 1;
+            } else if ((matches = /^(\d+)$/g.exec(op)) !== null) {
+                let i = parseInt(op) - delOffset;
                 result = result.substring(0, i) + result.substring(i+1);
                 delOffset++;
+            } else {
+                throw "Operation not valid: " + op;
             }
-        });
+        }
+
+        let op = '';
+        let escaped = false;
+
+        for (var i=0;i<serializedPath.length;i++) {
+            if (serializedPath.charAt(i) == ',' && !escaped) {
+                apply_op(op);
+                op = '';
+            } else if (serializedPath.charAt(i) == '\\' && !escaped) {
+                escaped = true;
+                continue;
+            } else {
+                op += serializedPath.charAt(i);
+                escaped = false;
+            }
+        }
+
+        if (op.length > 0) {
+            apply_op(op);
+        }
 
         return result;
     }

@@ -212,6 +212,14 @@ describe('Diff', function() {
         assert.equal(Diff.diff('test', ',test'), '0:\\,');
         assert.equal(Diff.diff('test', '\\test'), '0:\\\\');
     });
+    it('Supports new lines', function() {
+        assert.doesNotThrow(function() {
+            assert.equal(
+                Diff.apply("this is a test", "10:hello\nworld "),
+                "this is a hello\nworld test"
+            );
+        });
+    });
     it('reconstructing a diffed pair works', function() {
         function randomDerivative(strSource) {
             const Ndiff = Math.ceil((0.05*Math.random()+0.05)*strSource.length);

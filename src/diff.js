@@ -335,7 +335,7 @@ module.exports = class Diff {
 
         function apply_op(op) {
             let matches;
-            if ((matches = /^(\d+):(.*)$/g.exec(op)) !== null) {
+            if ((matches = /^(\d+):([\s\S]*)$/gm.exec(op)) !== null) {
                 let i = parseInt(matches[1]);
                 result = result.substring(0, i) + matches[2] + result.substring(i);
                 delOffset -= matches[2].length;
